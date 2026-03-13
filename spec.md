@@ -1,33 +1,31 @@
-# Science & App Creation Learning Hub
+# Shopping Mall Website
 
 ## Current State
-New project. No existing code.
+Empty project (new build).
 
 ## Requested Changes (Diff)
 
 ### Add
-- A learning platform covering two main topics:
-  1. **Science** -- articles and lessons on core science topics (biology, chemistry, physics, earth science)
-  2. **How to Create Apps** -- beginner-friendly guides on app development concepts (planning, design, coding basics, deploying)
-- Home page with topic cards linking to each category
-- Topic listing page showing lessons/articles per category
-- Lesson detail page showing content for a single lesson
-- A "Bookmark" feature so users can save lessons they want to revisit
-- Search bar to filter lessons by keyword
+- Full shopping mall website with multiple sections
+- Hero section with mall name, tagline, and CTA
+- Stores directory with categories (Fashion, Food, Electronics, Beauty, etc.)
+- Store detail pages with store info, hours, location in mall
+- Promotions/deals section showcasing current offers
+- Events section for mall events and activities
+- Mall info section (hours, location, parking, contact)
+- Newsletter signup (email capture form)
+- FAQ section
+- Footer with links and social media
 
 ### Modify
-- N/A (new project)
+N/A
 
 ### Remove
-- N/A (new project)
+N/A
 
 ## Implementation Plan
-1. Backend: Store categories, lessons (title, description, content, category), and bookmarks per user
-2. Backend: Expose query methods for listing categories, listing lessons by category, getting a single lesson, searching lessons
-3. Backend: Expose update methods for adding/removing bookmarks, getting bookmarks for a user
-4. Frontend: Home page with hero section and two category cards (Science, App Creation)
-5. Frontend: Category page listing lesson cards with title, short description, and a bookmark toggle
-6. Frontend: Lesson detail page with full content rendered nicely
-7. Frontend: Search bar on lessons page
-8. Frontend: Bookmarks page showing saved lessons
-9. Seed a set of sample lessons for both categories
+1. Backend: stores, promotions, events data models with CRUD APIs
+2. Authorization for admin to manage content
+3. Frontend: full mall website with all sections
+4. Responsive, mobile-first layout
+5. Store search and category filtering

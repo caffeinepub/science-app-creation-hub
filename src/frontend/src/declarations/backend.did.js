@@ -39,6 +39,7 @@ export const idlService = IDL.Service({
   'getCategories' : IDL.Func([], [IDL.Vec(Category)], ['query']),
   'getLessonById' : IDL.Func([IDL.Nat], [IDL.Opt(Lesson)], ['query']),
   'getLessonsByCategory' : IDL.Func([IDL.Nat], [IDL.Vec(Lesson)], ['query']),
+  'getUserBookmarks' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Nat)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -85,6 +86,7 @@ export const idlFactory = ({ IDL }) => {
     'getCategories' : IDL.Func([], [IDL.Vec(Category)], ['query']),
     'getLessonById' : IDL.Func([IDL.Nat], [IDL.Opt(Lesson)], ['query']),
     'getLessonsByCategory' : IDL.Func([IDL.Nat], [IDL.Vec(Lesson)], ['query']),
+    'getUserBookmarks' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Nat)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],

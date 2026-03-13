@@ -38,6 +38,7 @@ export interface backendInterface {
     getCategories(): Promise<Array<Category>>;
     getLessonById(lessonId: bigint): Promise<Lesson | null>;
     getLessonsByCategory(categoryId: bigint): Promise<Array<Lesson>>;
+    getUserBookmarks(user: string): Promise<Array<bigint>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     initializeSeedData(): Promise<void>;
     isCallerAdmin(): Promise<boolean>;

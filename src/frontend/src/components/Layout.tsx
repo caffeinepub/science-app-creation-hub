@@ -1,232 +1,253 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useQueryClient } from "@tanstack/react-query";
-import { Link, Outlet, useNavigate, useRouter } from "@tanstack/react-router";
-import {
-  BookmarkIcon,
-  FlaskConicalIcon,
-  Loader2,
-  MenuIcon,
-  SearchIcon,
-  XIcon,
-} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Crown, Menu, ShieldCheck, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
-function LoginButton() {
-  const { login, clear, loginStatus, identity } = useInternetIdentity();
-  const queryClient = useQueryClient();
-
-  const isAuthenticated = !!identity;
-  const isLoggingIn = loginStatus === "logging-in";
-
-  const handleAuth = async () => {
-    if (isAuthenticated) {
-      await clear();
-      queryClient.clear();
-    } else {
-      try {
-        await login();
-      } catch (error: unknown) {
-        const err = error as Error;
-        if (err?.message === "User is already authenticated") {
-          await clear();
-          setTimeout(() => login(), 300);
-        } else {
-          console.error("Login error:", error);
-        }
-      }
-    }
-  };
-
-  return (
-    <Button
-      onClick={handleAuth}
-      disabled={isLoggingIn}
-      variant={isAuthenticated ? "outline" : "default"}
-      size="sm"
-      data-ocid={isAuthenticated ? "nav.logout_button" : "nav.login_button"}
-      className={
-        isAuthenticated
-          ? "border-border text-foreground hover:bg-muted"
-          : "bg-primary text-primary-foreground hover:shadow-glow-teal transition-shadow"
-      }
-    >
-      {isLoggingIn ? (
-        <>
-          <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-          Logging in...
-        </>
-      ) : isAuthenticated ? (
-        "Sign Out"
-      ) : (
-        "Sign In"
-      )}
-    </Button>
-  );
-}
+const navLinks = [
+  { label: "Home", href: "/" },
+  { label: "Stores", href: "/stores" },
+  { label: "Promotions", href: "/promotions" },
+  { label: "Events", href: "/events" },
+];
 
 export default function Layout() {
-  const navigate = useNavigate();
-  const router = useRouter();
-  const currentSearch =
-    (router.state.location.search as { q?: string })?.q ?? "";
-  const [searchQuery, setSearchQuery] = useState(currentSearch);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { login, clear, loginStatus, identity } = useInternetIdentity();
+  const { actor, isFetching } = useActor();
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate({ to: "/search", search: { q: searchQuery.trim() } });
-      setMobileMenuOpen(false);
-    }
-  };
+  const isLoggedIn = loginStatus === "success" && !!identity;
+  const isLoggingIn = loginStatus === "logging-in";
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["isAdmin"],
+    queryFn: async () => {
+      if (!actor) return false;
+      return actor.isCallerAdmin();
+    },
+    enabled: !!actor && !isFetching && isLoggedIn,
+  });
 
   return (
-    <div className="min-h-screen mesh-bg flex flex-col">
-      {/* Navigation */}
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-        <nav className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link
-            to="/"
-            data-ocid="nav.home_link"
-            className="flex items-center gap-2.5 shrink-0 group"
-          >
-            <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center group-hover:shadow-glow-teal transition-shadow">
-              <FlaskConicalIcon className="w-4 h-4 text-primary" />
-            </div>
-            <span className="font-display font-bold text-lg hidden sm:block text-gradient-teal">
-              SciHub
-            </span>
-          </Link>
-
-          {/* Desktop Search */}
-          <form
-            onSubmit={handleSearch}
-            className="flex-1 max-w-md hidden md:flex gap-2"
-          >
-            <div className="relative flex-1">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search lessons, topics..."
-                data-ocid="home.search_input"
-                className="pl-9 bg-muted/50 border-border/60 placeholder:text-muted-foreground focus:border-primary/60 text-sm"
-              />
-            </div>
-            <Button
-              type="submit"
-              size="sm"
-              data-ocid="home.search_submit_button"
-              className="bg-primary text-primary-foreground hover:shadow-glow-teal transition-shadow shrink-0"
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Top Nav */}
+      <header className="sticky top-0 z-50 border-b border-gold-dim bg-background/95 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Logo */}
+            <Link
+              to="/"
+              className="flex items-center gap-2 group"
+              data-ocid="nav.link"
             >
-              Search
-            </Button>
-          </form>
+              <div className="w-8 h-8 rounded-full gradient-gold flex items-center justify-center shadow-gold-sm">
+                <Crown className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <span className="font-display text-lg md:text-xl font-bold text-gradient-gold">
+                Grand Plaza
+              </span>
+            </Link>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-1">
-            <Button variant="ghost" size="sm" asChild>
-              <Link
-                to="/bookmarks"
-                data-ocid="nav.bookmarks_link"
-                className="gap-1.5"
-              >
-                <BookmarkIcon className="w-4 h-4" />
-                Bookmarks
-              </Link>
-            </Button>
-            <LoginButton />
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    currentPath === link.href
+                      ? "text-gold bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
+                  data-ocid="nav.link"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+
+            {/* Auth */}
+            <div className="hidden md:flex items-center gap-3">
+              {isAdmin && (
+                <Badge className="bg-gold/20 text-gold border-gold-dim gap-1">
+                  <ShieldCheck className="w-3 h-3" /> Admin
+                </Badge>
+              )}
+              {isLoggedIn ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clear}
+                  className="border-gold-dim text-gold hover:bg-gold/10"
+                  data-ocid="nav.button"
+                >
+                  Sign Out
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={login}
+                  disabled={isLoggingIn}
+                  className="gradient-gold text-primary-foreground font-semibold hover:opacity-90 shadow-gold-sm"
+                  data-ocid="nav.primary_button"
+                >
+                  {isLoggingIn ? "Signing in..." : "Sign In"}
+                </Button>
+              )}
+            </div>
+
+            {/* Mobile Menu Toggle */}
+            <button
+              type="button"
+              className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              data-ocid="nav.toggle"
+            >
+              {mobileOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
           </div>
-
-          {/* Mobile menu toggle */}
-          <button
-            type="button"
-            className="md:hidden p-2 rounded-lg hover:bg-muted/50 transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? (
-              <XIcon className="w-5 h-5" />
-            ) : (
-              <MenuIcon className="w-5 h-5" />
-            )}
-          </button>
-        </nav>
+        </div>
 
         {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-border/60 bg-background/95 backdrop-blur-xl px-4 py-4 flex flex-col gap-3">
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="relative flex-1">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search lessons..."
-                  className="pl-9 bg-muted/50 border-border/60 text-sm"
-                />
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden border-t border-gold-dim overflow-hidden"
+            >
+              <div className="px-4 py-3 space-y-1 bg-background">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`block px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      currentPath === link.href
+                        ? "text-gold bg-primary/10"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    }`}
+                    data-ocid="nav.link"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                <div className="pt-2 flex flex-col gap-2">
+                  {isLoggedIn ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        clear();
+                        setMobileOpen(false);
+                      }}
+                      className="border-gold-dim text-gold"
+                      data-ocid="nav.button"
+                    >
+                      Sign Out
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        login();
+                        setMobileOpen(false);
+                      }}
+                      disabled={isLoggingIn}
+                      className="gradient-gold text-primary-foreground font-semibold"
+                      data-ocid="nav.primary_button"
+                    >
+                      {isLoggingIn ? "Signing in..." : "Sign In"}
+                    </Button>
+                  )}
+                </div>
               </div>
-              <Button
-                type="submit"
-                size="sm"
-                className="bg-primary text-primary-foreground"
-              >
-                Go
-              </Button>
-            </form>
-            <div className="flex flex-col gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="justify-start"
-                asChild
-              >
-                <Link
-                  to="/bookmarks"
-                  data-ocid="nav.bookmarks_link"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="gap-2"
-                >
-                  <BookmarkIcon className="w-4 h-4" />
-                  Bookmarks
-                </Link>
-              </Button>
-              <div className="pt-1">
-                <LoginButton />
-              </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1">
         <Outlet />
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 bg-background/60 py-8 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <FlaskConicalIcon className="w-4 h-4 text-primary" />
-            <span className="font-display font-semibold text-sm text-gradient-teal">
-              SciHub
-            </span>
+      <footer className="bg-navy-deep border-t border-gold-dim mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-full gradient-gold flex items-center justify-center">
+                  <Crown className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <span className="font-display text-xl font-bold text-gradient-gold">
+                  Grand Plaza Mall
+                </span>
+              </div>
+              <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
+                The premier shopping destination in the heart of the city.
+                Luxury brands, gourmet dining, and world-class entertainment —
+                all under one roof.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground mb-3 text-sm uppercase tracking-wider">
+                Explore
+              </h4>
+              <ul className="space-y-2">
+                {navLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      to={link.href}
+                      className="text-muted-foreground hover:text-gold text-sm transition-colors"
+                      data-ocid="nav.link"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground mb-3 text-sm uppercase tracking-wider">
+                Hours
+              </h4>
+              <ul className="space-y-1 text-muted-foreground text-sm">
+                <li>Mon – Fri: 10am – 10pm</li>
+                <li>Sat – Sun: 10am – 11pm</li>
+                <li className="text-gold mt-2">📍 1 Grand Plaza Ave</li>
+              </ul>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()}. Built with ♥ using{" "}
-            <a
-              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary/80 hover:text-primary transition-colors underline underline-offset-2"
-            >
-              caffeine.ai
-            </a>
-          </p>
+          <div className="border-t border-gold-dim mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-muted-foreground text-xs">
+              © {new Date().getFullYear()} Grand Plaza Mall. All rights
+              reserved.
+            </p>
+            <p className="text-muted-foreground text-xs">
+              Built with ❤️ using{" "}
+              <a
+                href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gold hover:underline"
+              >
+                caffeine.ai
+              </a>
+            </p>
+          </div>
         </div>
       </footer>
     </div>

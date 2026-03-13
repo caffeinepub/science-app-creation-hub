@@ -1,21 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useActor } from "../hooks/useActor";
-
-let seedInitialized = false;
+import { useInitializeSeedData } from "../hooks/useQueries";
 
 export default function SeedInitializer() {
   const { actor, isFetching } = useActor();
-  const calledRef = useRef(false);
+  const { mutate: initSeed } = useInitializeSeedData();
 
   useEffect(() => {
-    if (!actor || isFetching || seedInitialized || calledRef.current) return;
-    calledRef.current = true;
-    seedInitialized = true;
-
-    actor.initializeSeedData().catch((err) => {
-      console.warn("Seed data initialization failed (may already exist):", err);
-    });
-  }, [actor, isFetching]);
+    if (actor && !isFetching) {
+      initSeed();
+    }
+  }, [actor, isFetching, initSeed]);
 
   return null;
 }

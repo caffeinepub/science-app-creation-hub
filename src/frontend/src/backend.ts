@@ -121,6 +121,7 @@ export interface backendInterface {
     getCategories(): Promise<Array<Category>>;
     getLessonById(lessonId: bigint): Promise<Lesson | null>;
     getLessonsByCategory(categoryId: bigint): Promise<Array<Lesson>>;
+    getUserBookmarks(user: string): Promise<Array<bigint>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     initializeSeedData(): Promise<void>;
     isCallerAdmin(): Promise<boolean>;
@@ -254,6 +255,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getLessonsByCategory(arg0);
+            return result;
+        }
+    }
+    async getUserBookmarks(arg0: string): Promise<Array<bigint>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getUserBookmarks(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getUserBookmarks(arg0);
             return result;
         }
     }

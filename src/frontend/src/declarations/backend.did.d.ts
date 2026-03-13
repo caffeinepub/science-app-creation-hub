@@ -38,6 +38,7 @@ export interface _SERVICE {
   'getCategories' : ActorMethod<[], Array<Category>>,
   'getLessonById' : ActorMethod<[bigint], [] | [Lesson]>,
   'getLessonsByCategory' : ActorMethod<[bigint], Array<Lesson>>,
+  'getUserBookmarks' : ActorMethod<[string], Array<bigint>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'initializeSeedData' : ActorMethod<[], undefined>,
   'isCallerAdmin' : ActorMethod<[], boolean>,

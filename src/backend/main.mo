@@ -1,12 +1,14 @@
-import Array "mo:core/Array";
 import List "mo:core/List";
-import Principal "mo:core/Principal";
 import Text "mo:core/Text";
 import Map "mo:core/Map";
+import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import Migration "migration";
 
+// Use migration to preserve data on upgrades
+(with migration = Migration.run)
 actor {
   // Data Types
   public type Category = {
@@ -26,7 +28,7 @@ actor {
   };
 
   public type Bookmark = {
-    user : Principal;
+    user : Text;
     lessonId : Nat;
   };
 
@@ -34,7 +36,7 @@ actor {
     name : Text;
   };
 
-  // State Management
+  // State Variables
   let categories = Map.empty<Nat, Category>();
   let lessons = Map.empty<Nat, Lesson>();
   let bookmarks = List.empty<Bookmark>();
@@ -44,7 +46,7 @@ actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  // User Profile Functions
+  // User Profile Management
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access profiles");
@@ -66,7 +68,7 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // Seed Data Initialization
+  // Initialization Functions
   public shared ({ caller }) func initializeSeedData() : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can initialize seed data");
@@ -194,7 +196,7 @@ actor {
     );
   };
 
-  // Queries
+  // Public Functions - Read operations (accessible to all including guests)
   public query ({ caller }) func getCategories() : async [Category] {
     categories.values().toArray();
   };
@@ -209,40 +211,29 @@ actor {
 
   public query ({ caller }) func searchLessons(keyword : Text) : async [Lesson] {
     lessons.values().toArray().filter(
-      func(l) {
-        l.title.contains(#text keyword) or l.shortDescription.contains(#text keyword);
-      }
+      func(l) { l.title.contains(#text keyword) or l.shortDescription.contains(#text keyword) }
     );
   };
 
-  public query ({ caller }) func getBookmarkedLessonIds() : async [Nat] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can access bookmarks");
-    };
-    let userBookmarks = bookmarks.toArray().filter(func(b) { Principal.equal(b.user, caller) });
-    userBookmarks.map(func(b) { b.lessonId });
-  };
-
-  // Updates
+  // Bookmark Management - User must be authenticated and can only manage their own bookmarks
   public shared ({ caller }) func addBookmark(lessonId : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can add bookmarks");
+      Runtime.trap("Unauthorized: Only authenticated users can add bookmarks");
     };
 
-    // Check if lesson exists
     switch (lessons.get(lessonId)) {
       case (null) { Runtime.trap("Lesson does not exist") };
       case (?_) {};
     };
 
-    // Check for duplicate bookmarks
+    let userText = caller.toText();
     let existing = bookmarks.toArray().filter(
-      func(b) { Principal.equal(b.user, caller) and b.lessonId == lessonId }
+      func(b) { b.user == userText and b.lessonId == lessonId }
     );
     if (existing.size() > 0) { Runtime.trap("Bookmark already exists") };
 
     let newBookmark = {
-      user = caller;
+      user = userText;
       lessonId;
     };
     bookmarks.add(newBookmark);
@@ -250,13 +241,34 @@ actor {
 
   public shared ({ caller }) func removeBookmark(lessonId : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can remove bookmarks");
+      Runtime.trap("Unauthorized: Only authenticated users can remove bookmarks");
     };
 
+    let userText = caller.toText();
     let filteredBookmarks = bookmarks.toArray().filter(
-      func(b) { not (Principal.equal(b.user, caller) and b.lessonId == lessonId) }
+      func(b) { not (b.user == userText and b.lessonId == lessonId) }
     );
     bookmarks.clear();
     bookmarks.addAll(filteredBookmarks.values());
+  };
+
+  public query ({ caller }) func getBookmarkedLessonIds() : async [Nat] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can view bookmarks");
+    };
+
+    let userText = caller.toText();
+    let userBookmarks = bookmarks.toArray().filter(func(b) { b.user == userText });
+    userBookmarks.map(func(b) { b.lessonId });
+  };
+
+  // Admin function to view any user's bookmarks
+  public query ({ caller }) func getUserBookmarks(user : Text) : async [Nat] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view other users' bookmarks");
+    };
+
+    let userBookmarks = bookmarks.toArray().filter(func(b) { b.user == user });
+    userBookmarks.map(func(b) { b.lessonId });
   };
 };
